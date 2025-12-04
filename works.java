@@ -32,7 +32,7 @@ import java.awt.*;
 ///'.___.'__'__'._____('________ ____
 //
 // region CLASS
-public class TelaASCII extends JPanel {
+public class works extends JPanel {
     
     // \.
     // .'¨¨¨'.
@@ -51,11 +51,15 @@ public class TelaASCII extends JPanel {
     private final boolean[][] dirty = new boolean[height][width];
 
     // to not render the same sized font when unneeded
-    private Font cachedFont = null;
+    private Font cachedFont = new Font("Consolas", Font.PLAIN, 100);
     private int cachedFontSize = -1;
-    private float fontRatio = 0.55f;
+    private int tileHeightPixel = 5;
+    private int tileWidthPixel = 3;
+    // private boolean a = true;
+    // private int heightMetric;
 
     // default cmd colors
+    // region
     static final Color[] PALETTE = {
         new Color(0,0,0),       // 0 BLACK
         new Color(0,0,170),     // 1 BLUE
@@ -76,6 +80,7 @@ public class TelaASCII extends JPanel {
         new Color(255,255,255)  // F WHITE
     };
     // endregion
+    // endregion
     // ._____ ____._______
     //(  .       (
     // '-'
@@ -87,7 +92,7 @@ public class TelaASCII extends JPanel {
                 setTile(x, y, '$', (byte)2, (byte)1);
             }
         }
-        setTile(width / 2, height / 2, '#', (byte)14, (byte)4);
+        setTile(width / 2, height / 2, '@', (byte)14, (byte)4);
     }
 
     // helps set everything right, then repaints
@@ -99,10 +104,17 @@ public class TelaASCII extends JPanel {
         repaint();
     }
 
+    // helps with things like resizing
+    public void markAllDirty() {
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                dirty[y][x] = true;
+    }
+
     // not sure, but calls population and then sets up the frame
-    public TelaASCII() {
+    public works() {
         populateDemo(); 
-        setPreferredSize(new Dimension((int)Math.floor(width * 20 * fontRatio), height * 20));
+        setPreferredSize(new Dimension(width * 12, height * 20));
         setBackground(PALETTE[0]);
     }
 
@@ -118,29 +130,47 @@ public class TelaASCII extends JPanel {
             RenderingHints.VALUE_TEXT_ANTIALIAS_ON
         );
 
+        // if (a){
+        //     g2.setFont(cachedFont);
+        //     heightMetric = g2.getFontMetrics().getHeight();
+        //     System.out.println(Integer.toString(heightMetric));
+        //     a = false;            
+        // }
+
         // maths
+
         int panelW = getWidth();
         int panelH = getHeight();
 
-        int tWidth = (int)(panelW) / (int)(width);
-        int tHeight = (int)(panelH) / (int)(height);
-        int fontSize = (int)(Math.max(1, Math.min(tWidth, tHeight)));
+        int basePanelW = tileWidthPixel * width;
+        int basePanelH = tileHeightPixel * height;
 
-        // int tWidth  = panelW / width;
-        // int tHeight = panelH / height;
-        // int fontSize = (int)Math.max(1, Math.min(
-        //     tWidth / fontRatio,
-        //     tHeight
-        // ));
+        int scaleW = Math.max(1 , panelW / basePanelW);
+        int scaleH = Math.max(1 , panelH / basePanelH);
 
-        int tileWidth = (int)Math.floor(fontSize * fontRatio);
-        int tileHeight = fontSize;
+        int scale = Math.min(scaleW, scaleH);
 
-        int displayW = width * tileWidth;
-        int displayH = height * tileHeight;
+        int tileWidth = tileWidthPixel * scale, tileHeight = tileHeightPixel * scale;
 
-        int offsetX = (panelW - displayW) / 2;
-        int offsetY = (panelH - displayH) / 2;
+        int fontSize = tileHeight;
+
+        // int tWidth = (int)(panelW) / (int)(width);
+        // int tHeight = (int)(panelH) / (int)(height * a);
+        // int fontSize = (int)Math.floor((Math.max(1, Math.min(tWidth, tHeight))) * a);
+        
+        // float tWidth  = panelW / (float)width;
+        // float tHeight = panelH / (float)(height * a);
+
+        // float rawSize = Math.min(tWidth, tHeight) * a;
+        // int fontSize = (int)Math.max(1, Math.round(rawSize));
+
+        // int tileWidth = (int)Math.floor(fontSize / a);
+        // int tileHeight = fontSize;
+
+        // offset for centering
+
+        int offsetX = (panelW - basePanelW * scale) / 2;
+        int offsetY = (panelH - basePanelH * scale) / 2;
 
         // int tw = (int) Math.floor(panelW / width);
         // int th = (int) Math.floor(panelH / height); 
@@ -154,7 +184,6 @@ public class TelaASCII extends JPanel {
         if (fontSize != cachedFontSize) {
             cachedFont = new Font("Consolas", Font.PLAIN, fontSize);
             cachedFontSize = fontSize;
-            System.out.println(Integer.toString(tWidth) + " " + Integer.toString(tHeight));
         }
 
         g2.setFont(cachedFont);
@@ -207,7 +236,7 @@ public class TelaASCII extends JPanel {
     // main, creates and sets up the GUI
     public static void main(String[] args) {
         JFrame frame = new JFrame("Tela ASCII Gráfica");
-        TelaASCII tela = new TelaASCII();
+        works tela = new works();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(tela);
