@@ -20,6 +20,8 @@
 // region IMPORTS
 import javax.swing.*;
 import java.awt.*;
+import java.util.Map;
+import static java.util.Map.entry;
 // endregion
 // ._____ ____._______
 //(  .       (
@@ -62,7 +64,7 @@ public class TelaASCII extends JPanel {
         new Color(0,170,170),   // 3 CYAN
         new Color(170,0,0),     // 4 RED
         new Color(170,0,170),   // 5 MAGENTA
-        new Color(170,0,0),    // 6 BROWN
+        new Color(170,0,0),     // 6 BROWN
         new Color(170,170,170), // 7 LIGHT GRAY
 
         new Color(85,85,85),    // 8 DARK GRAY
@@ -74,6 +76,25 @@ public class TelaASCII extends JPanel {
         new Color(255,255,85),  // E YELLOW
         new Color(255,255,255)  // F WHITE
     };
+    Map<String, Byte> Colors = Map.ofEntries(
+        entry("BLACK", (byte)(0)),
+        entry("BLUE", (byte)(1)),
+        entry("GREEN", (byte)(2)),
+        entry("CYAN", (byte)(3)),
+        entry("RED", (byte)(4)),
+        entry("MAGENTA", (byte)(5)),
+        entry("BROWN", (byte)(6)),
+        entry("LIGHT GRAY", (byte)(7)),
+
+        entry("DARK GRAY", (byte)(8)),
+        entry("LIGHT BLUE", (byte)(9)),
+        entry("LIGHT GREEN", (byte)(10)),
+        entry("LIGHT CYAN", (byte)(11)),
+        entry("LIGHT RED", (byte)(12)),
+        entry("LIGHT MAGENTA", (byte)(13)),
+        entry("YELLOW", (byte)(14)),
+        entry("WHITE", (byte)(15))
+    );
     // endregion
     // ._____ ____._______
     //(  .       (
@@ -87,6 +108,8 @@ public class TelaASCII extends JPanel {
             }
         }
         setTile(width / 2, height / 2, '#', (byte)14, (byte)4);
+
+        setTile(1,1 , 'o', (byte)15, (byte)0);
     }
 
     // helps set everything right, then repaints
