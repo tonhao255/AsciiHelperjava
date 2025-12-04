@@ -1,21 +1,60 @@
+// \.
+// .'¨¨¨'.
+///  __   \    `;
+// .' .'  /,   ,¨'-
+///'.___.'__'__'._____('________ ____
+//
+// region TESTE
+
+// endregion
+// ._____ ____._______
+//(  .       (
+// '-'
+
+// \.
+// .'¨¨¨'.
+///  __   \    `;
+// .' .'  /,   ,¨'-
+///'.___.'__'__'._____('________ ____
+//
+// region IMPORTS
 import javax.swing.*;
 import java.awt.*;
+// endregion
+// ._____ ____._______
+//(  .       (
+// '-'
 
+// \.
+// .'¨¨¨'.
+///  __   \    `;
+// .' .'  /,   ,¨'-
+///'.___.'__'__'._____('________ ____
+//
+// region CLASS
 public class TelaASCII extends JPanel {
     
+    // \.
+    // .'¨¨¨'.
+    ///  __   \    `;
+    // .' .'  /,   ,¨'-
+    ///'.___.'__'__'._____('________ ____
+    //
+    // region SETUP
     // not sure but I think 25 x 80 is Stone Story RPG's size
     private static int height = 25, width = 80;
 
+    // initializing the matrices
     private final char[][] charMatrix = new char[height][width];
     private final byte[][] fgMatrix  = new byte[height][width];
     private final byte[][] bgMatrix  = new byte[height][width];
     private final boolean[][] dirty = new boolean[height][width];
 
+    // to not render the same sized font when unneeded
     private Font cachedFont = null;
     private int cachedFontSize = -1;
 
-    // region CORES
-
+    // default cmd colors
     static final Color[] PALETTE = {
         new Color(0,0,0),       // 0 BLACK
         new Color(0,0,170),     // 1 BLUE
@@ -23,7 +62,7 @@ public class TelaASCII extends JPanel {
         new Color(0,170,170),   // 3 CYAN
         new Color(170,0,0),     // 4 RED
         new Color(170,0,170),   // 5 MAGENTA
-        new Color(170,85,0),    // 6 BROWN
+        new Color(170,0,0),    // 6 BROWN
         new Color(170,170,170), // 7 LIGHT GRAY
 
         new Color(85,85,85),    // 8 DARK GRAY
@@ -35,9 +74,12 @@ public class TelaASCII extends JPanel {
         new Color(255,255,85),  // E YELLOW
         new Color(255,255,255)  // F WHITE
     };
-
     // endregion
+    // ._____ ____._______
+    //(  .       (
+    // '-'
 
+    // testing purposes, fills the screen. later will be replaced
     private void populateDemo() {
         for (int y = 0; y < height; y++){
             for (int x = 0; x < width; x++){
@@ -47,6 +89,7 @@ public class TelaASCII extends JPanel {
         setTile(width / 2, height / 2, '#', (byte)14, (byte)4);
     }
 
+    // helps set everything right, then repaints
     public void setTile(int x, int y, char c, byte fg, byte bg) {
         charMatrix[y][x] = c;
         fgMatrix[y][x] = fg;
@@ -55,21 +98,26 @@ public class TelaASCII extends JPanel {
         repaint();
     }
 
+    // not sure, but calls population and then sets up the frame
     public TelaASCII() {
         populateDemo(); 
         setPreferredSize(new Dimension(width * 10, height * 20));
-        setBackground(Color.BLACK);        
+        setBackground(PALETTE[0]);
     }
 
+    // overrides the paint function so that it paints the screen
     @Override
     protected void paintComponent(Graphics g) {
+        // conserves the functions of the old function
         super.paintComponent(g);
+
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(
             RenderingHints.KEY_TEXT_ANTIALIASING,
             RenderingHints.VALUE_TEXT_ANTIALIAS_ON
         );
 
+        // maths
         int panelW = getWidth();
         int panelH = getHeight();
 
@@ -94,6 +142,7 @@ public class TelaASCII extends JPanel {
 
         // int fontSize = Math.max(1, (int)Math.floor(tileHeight));
 
+        // ignores if the size does not change
         if (fontSize != cachedFontSize) {
             cachedFont = new Font("Consolas", Font.PLAIN, fontSize);
             cachedFontSize = fontSize;
@@ -103,42 +152,50 @@ public class TelaASCII extends JPanel {
 
         FontMetrics fm = g2.getFontMetrics();
 
-
+        // actually paints the characters and boxes
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
 
+                // if cell dirty, jump to next
                 if (!dirty[y][x]) continue;
 
+                // position char while centering
                 int px = (int) (x * tileWidth + offsetX);
                 int py = (int) (y * tileHeight + offsetY);
 
+                // fills bg
                 Color bg = PALETTE[ bgMatrix[y][x] & 0x0F ];
                 g2.setColor(bg);
                 g2.fillRect(px, py, (int)tileWidth, (int)tileHeight);
 
+                // defines fg color
                 Color fg = PALETTE[ fgMatrix[y][x] & 0x0F ];
                 g2.setColor(fg);
 
+                // gets char
                 char c = charMatrix[y][x];
 
+                // paints char
                 int textY = (int) (py + (tileHeight - fm.getDescent()));
                 g2.drawString(String.valueOf(c), px, textY);
 
-                // limpa o dirty
+                // cleans dirty
                 dirty[y][x] = false;
             }
         }
     }
 
+    // overrides the invalidation function (whatever that is)
     @Override
     public void invalidate() {
         super.invalidate();
-        // marca tudo como dirty
+        // marks everything as dirty once you resize or move the screen
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 dirty[y][x] = true;
     }
 
+    // main, creates and sets up the GUI
     public static void main(String[] args) {
         JFrame frame = new JFrame("Tela ASCII Gráfica");
         TelaASCII tela = new TelaASCII();
@@ -150,3 +207,7 @@ public class TelaASCII extends JPanel {
         frame.setVisible(true);
     }
 }
+// endregion
+// ._____ ____._______
+//(  .       (
+// '-'
