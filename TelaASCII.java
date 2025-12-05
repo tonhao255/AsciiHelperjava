@@ -1,60 +1,29 @@
-// \.
-// .'¨¨¨'.
-///  __   \    `;
-// .' .'  /,   ,¨'-
-///'.___.'__'__'._____('________ ____
-//
-// region TESTE
-
-// endregion
-// ._____ ____._______
-//(  .       (
-// '-'
-
-// \.
-// .'¨¨¨'.
-///  __   \    `;
-// .' .'  /,   ,¨'-
-///'.___.'__'__'._____('________ ____
-//
-// region IMPORTS
 import javax.swing.*;
 import java.awt.*;
-// endregion
-// ._____ ____._______
-//(  .       (
-// '-'
+import java.awt.event.HierarchyEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
-// \.
-// .'¨¨¨'.
-///  __   \    `;
-// .' .'  /,   ,¨'-
-///'.___.'__'__'._____('________ ____
-//
-// region CLASS
 public class TelaASCII extends JPanel {
-    
-    // \.
-    // .'¨¨¨'.
-    ///  __   \    `;
-    // .' .'  /,   ,¨'-
-    ///'.___.'__'__'._____('________ ____
-    //
-    // region SETUP
-    // not sure but I think 25 x 80 is Stone Story RPG's size
-    private static int height = 25, width = 80;
 
-    // initializing the matrices
+    private static int height = 26, width = 76;
+
     private final char[][] charMatrix = new char[height][width];
     private final byte[][] fgMatrix  = new byte[height][width];
     private final byte[][] bgMatrix  = new byte[height][width];
     private final boolean[][] dirty = new boolean[height][width];
 
-    // to not render the same sized font when unneeded
-    private Font cachedFont = null;
+    private Font cachedFont = new Font("Consolas", Font.PLAIN, 100);
     private int cachedFontSize = -1;
+    private int tileHeightPixel = 5;
+    private int tileWidthPixel = 3;
+    private int targetX;
+    private int targetY;
 
-    // default cmd colors
+    private int backgroundColor = 1;
+
     static final Color[] PALETTE = {
         new Color(0,0,0),       // 0 BLACK
         new Color(0,0,170),     // 1 BLUE
@@ -67,29 +36,28 @@ public class TelaASCII extends JPanel {
 
         new Color(85,85,85),    // 8 DARK GRAY
         new Color(85,85,255),   // 9 LIGHT BLUE
-        new Color(85,255,85),   // A LIGHT GREEN
-        new Color(85,255,255),  // B LIGHT CYAN
-        new Color(255,85,85),   // C LIGHT RED
-        new Color(255,85,255),  // D LIGHT MAGENTA
-        new Color(255,255,85),  // E YELLOW
-        new Color(255,255,255)  // F WHITE
+        new Color(85,255,85),   // 10 LIGHT GREEN
+        new Color(85,255,255),  // 11 LIGHT CYAN
+        new Color(255,85,85),   // 12 LIGHT RED
+        new Color(255,85,255),  // 13 LIGHT MAGENTA
+        new Color(255,255,85),  // 14 YELLOW
+        new Color(255,255,255)  // 15 WHITE
     };
-    // endregion
-    // ._____ ____._______
-    //(  .       (
-    // '-'
 
-    // testing purposes, fills the screen. later will be replaced
+    private Dimension cachedSize = new Dimension(-1, -1);
+    private volatile boolean forceFullRedraw = true; 
+
     private void populateDemo() {
         for (int y = 0; y < height; y++){
             for (int x = 0; x < width; x++){
-                setTile(x, y, '$', (byte)2, (byte)1);
+                if (x == 0 || y == 0 || x == width -1|| y == height -1){
+                    setTile(x, y, '#', (byte)0, (byte)15);
+                }else setTile(x, y, '$', (byte)10, (byte)0);
             }
         }
-        setTile(width / 2, height / 2, '#', (byte)14, (byte)4);
+        setTile(width / 2, height / 2, '@', (byte)12, (byte)0);
     }
 
-    // helps set everything right, then repaints
     public void setTile(int x, int y, char c, byte fg, byte bg) {
         charMatrix[y][x] = c;
         fgMatrix[y][x] = fg;
@@ -98,18 +66,28 @@ public class TelaASCII extends JPanel {
         repaint();
     }
 
-    // not sure, but calls population and then sets up the frame
-    public TelaASCII() {
-        populateDemo(); 
-        setPreferredSize(new Dimension(width * 10, height * 20));
-        setBackground(PALETTE[0]);
+    public void markAllDirty() {
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                dirty[y][x] = true;
     }
 
-    // overrides the paint function so that it paints the screen
+    public TelaASCII() {
+        populateDemo();
+        setPreferredSize(new Dimension(width * 12, height * 20));
+        setBackground(PALETTE[backgroundColor]);
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
-        // conserves the functions of the old function
         super.paintComponent(g);
+
+        Dimension now = getSize();
+        if (forceFullRedraw || !now.equals(cachedSize)) {
+            cachedSize = new Dimension(now);
+            markAllDirty();
+            forceFullRedraw = false;
+        }
 
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(
@@ -117,97 +95,182 @@ public class TelaASCII extends JPanel {
             RenderingHints.VALUE_TEXT_ANTIALIAS_ON
         );
 
-        // maths
         int panelW = getWidth();
         int panelH = getHeight();
 
-        int tWidth = (int)(panelW) / (int)(width);
-        int tHeight = (int)(panelH) / (int)(height * 2);
-        int fontSize = (int)(Math.max(1, Math.min(tWidth, tHeight))) * 2;
+        int basePanelW = tileWidthPixel * width;
+        int basePanelH = tileHeightPixel * height;
 
-        int tileWidth = fontSize / 2;
-        int tileHeight = fontSize;
+        // int scaleW = Math.max(1 , panelW / basePanelW);
+        // int scaleH = Math.max(1 , panelH / basePanelH);
 
-        int displayW = width * tileWidth;
-        int displayH = height * tileHeight;
+        // int scale = Math.min(scaleW, scaleH);
 
-        int offsetX = (panelW - displayW) / 2;
-        int offsetY = (panelH - displayH) / 2;
+        // int tileWidth = tileWidthPixel * scale, tileHeight = tileHeightPixel * scale;
 
-        // int tw = (int) Math.floor(panelW / width);
-        // int th = (int) Math.floor(panelH / height); 
+        // int fontSize = tileHeight;
 
-        // float tileWidth  = Math.min(tw, th / 2f);
-        // float tileHeight = tileWidth * 2f;
+        if (basePanelH * panelW < basePanelW * panelH){
+            targetX = panelW;
+            targetY = (int)Math.floor(basePanelH * panelW / basePanelW);
+        }else{
+            targetY = panelH;
+            targetX = (int)Math.floor(basePanelW * panelH / basePanelH);
+        }
 
-        // int fontSize = Math.max(1, (int)Math.floor(tileHeight));
+        targetX = Math.max(basePanelW, targetX);
+        targetY = Math.max(basePanelH, targetY);
 
-        // ignores if the size does not change
+        // int offsetX = (panelW - basePanelW * scale) / 2;
+        // int offsetY = (panelH - basePanelH * scale) / 2;
+        int offsetX = (panelW - targetX) / 2;
+        int offsetY = (panelH - targetY) / 2;
+
+        int fontSize = (int)Math.round(targetY/(float)height);
+
         if (fontSize != cachedFontSize) {
             cachedFont = new Font("Consolas", Font.PLAIN, fontSize);
             cachedFontSize = fontSize;
+            markAllDirty();
         }
 
         g2.setFont(cachedFont);
-
         FontMetrics fm = g2.getFontMetrics();
 
-        // actually paints the characters and boxes
+        int accX = 0;
+        int accY = 0;
+        int px = 0;
+        int py = 0;
+        int posX = 0;
+        int posY = 0;
+
         for (int y = 0; y < height; y++) {
+
+            accY += targetY;
+            int tileHeight = accY / height;
+            accY = accY % height;
+
+            accX = 0;
+            px = 0;
+
             for (int x = 0; x < width; x++) {
 
-                // if cell dirty, jump to next
-                if (!dirty[y][x]) continue;
+                accX += targetX;
+                int tileWidth = accX / width;
+                accX = accX % width;
+                
+                if (!dirty[y][x]) {
+                    px += tileWidth;
+                    continue;
+                }
 
-                // position char while centering
-                int px = (int) (x * tileWidth + offsetX);
-                int py = (int) (y * tileHeight + offsetY);
-
-                // fills bg
+                posX = px + offsetX;
+                posY = py + offsetY;
+                
                 Color bg = PALETTE[ bgMatrix[y][x] & 0x0F ];
                 g2.setColor(bg);
-                g2.fillRect(px, py, (int)tileWidth, (int)tileHeight);
+                g2.fillRect(posX, posY, tileWidth, tileHeight);
 
-                // defines fg color
                 Color fg = PALETTE[ fgMatrix[y][x] & 0x0F ];
                 g2.setColor(fg);
 
-                // gets char
                 char c = charMatrix[y][x];
+                int textY = posY + (tileHeight - fm.getDescent());
+                g2.drawString(String.valueOf(c), posX, textY);                                
+                
+                // int px = x * tileWidth + offsetX;
+                // int py = y * tileHeight + offsetY;
 
-                // paints char
-                int textY = (int) (py + (tileHeight - fm.getDescent()));
-                g2.drawString(String.valueOf(c), px, textY);
+                // Color bg = PALETTE[ bgMatrix[y][x] & 0x0F ];
+                // g2.setColor(bg);
+                // g2.fillRect(px, py, tileWidth, tileHeight);
 
-                // cleans dirty
+                // Color fg = PALETTE[ fgMatrix[y][x] & 0x0F ];
+                // g2.setColor(fg);
+
+                // char c = charMatrix[y][x];
+                // int textY = py + (tileHeight - fm.getDescent());
+                // g2.drawString(String.valueOf(c), px, textY);
+
                 dirty[y][x] = false;
+                px += tileWidth;
             }
+            py += tileHeight;
         }
     }
 
-    // overrides the invalidation function (whatever that is)
     @Override
     public void invalidate() {
         super.invalidate();
-        // marks everything as dirty once you resize or move the screen
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
-                dirty[y][x] = true;
+        markAllDirty();
     }
 
-    // main, creates and sets up the GUI
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Tela ASCII Gráfica");
-        TelaASCII tela = new TelaASCII();
+        JFrame frame = new JFrame("ASCII Graphic Screen");
+        TelaASCII screen = new TelaASCII();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(tela);
+        frame.add(screen);
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+
+        // painel: resize/show
+        screen.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+            @Override
+            public void componentShown(ComponentEvent e) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+        });
+
+        // frame: resize/move
+        frame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+        });
+
+        // window state: maximize/restore
+        frame.addWindowStateListener(e -> {
+            screen.forceFullRedraw = true;
+            screen.repaint();
+        });
+
+        // window listener: minimize/restore/activate
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+            @Override
+            public void windowActivated(WindowEvent e) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+        });
+
+        // hierarchy: when panel is reparented or its displayability changes
+        screen.addHierarchyListener(e -> {
+            long flags = e.getChangeFlags();
+            if ((flags & HierarchyEvent.DISPLAYABILITY_CHANGED) != 0
+             || (flags & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                screen.forceFullRedraw = true;
+                screen.repaint();
+            }
+        });
     }
 }
-// endregion
-// ._____ ____._______
-//(  .       (
-// '-'
