@@ -8,12 +8,14 @@ import java.awt.event.WindowEvent;
 
 public class TelaASCII extends JPanel {
 
-    private static int height = 26, width = 76;
+    // agora NÃO é mais static — configurável por initScreen
+    private int height = 26, width = 76;
 
-    private final char[][] charMatrix = new char[height][width];
-    private final byte[][] fgMatrix  = new byte[height][width];
-    private final byte[][] bgMatrix  = new byte[height][width];
-    private final boolean[][] dirty = new boolean[height][width];
+    // matrizes agora não são mais final — serão recriadas dinamicamente
+    private char[][] charMatrix;
+    private byte[][] fgMatrix;
+    private byte[][] bgMatrix;
+    private boolean[][] dirty;
 
     private Font cachedFont = new Font("Consolas", Font.PLAIN, 100);
     private int cachedFontSize = -1;
@@ -47,16 +49,66 @@ public class TelaASCII extends JPanel {
     private Dimension cachedSize = new Dimension(-1, -1);
     private volatile boolean forceFullRedraw = true; 
 
-    private void populateDemo() {
-        for (int y = 0; y < height; y++){
-            for (int x = 0; x < width; x++){
-                if (x == 0 || y == 0 || x == width -1|| y == height -1){
-                    setTile(x, y, '#', (byte)0, (byte)15);
-                }else setTile(x, y, '$', (byte)10, (byte)0);
+    // -----------------------------------------------------------
+    // NOVO: inicialização modular
+    // -----------------------------------------------------------
+    public void initScreen(int w, int h, int tileW, int tileH) {
+        this.width = w;
+        this.height = h;
+
+        this.tileWidthPixel = tileW;
+        this.tileHeightPixel = tileH;
+
+        charMatrix = new char[h][w];
+        fgMatrix   = new byte[h][w];
+        bgMatrix   = new byte[h][w];
+        dirty      = new boolean[h][w];
+
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++) {
+                charMatrix[y][x] = ' ';
+                fgMatrix[y][x] = 15;
+                bgMatrix[y][x] = 0;
+                dirty[y][x] = true;
             }
-        }
-        setTile(width / 2, height / 2, '@', (byte)12, (byte)0);
+
+        setPreferredSize(new Dimension(width * tileW * 2, height * tileH * 2));
+        revalidate();
+        repaint();
     }
+
+
+    // -----------------------------------------------------------
+    // NOVO: método render externo (módulo)
+    // -----------------------------------------------------------
+    public void render(
+        char[][] chars,
+        byte[][] fgs,
+        byte[][] bgs,
+        boolean[][] dirt
+    ){
+        this.charMatrix = chars;
+        this.fgMatrix = fgs;
+        this.bgMatrix = bgs;
+        this.dirty = dirt;
+
+        repaint();
+    }
+
+    // -----------------------------------------------------------
+    // resto do seu código permanece igual
+    // -----------------------------------------------------------
+
+    // private void populateDemo() {
+    //     for (int y = 0; y < height; y++){
+    //         for (int x = 0; x < width; x++){
+    //             if (x == 0 || y == 0 || x == width -1|| y == height -1){
+    //                 setTile(x, y, '#', (byte)0, (byte)15);
+    //             }else setTile(x, y, '$', (byte)10, (byte)0);
+    //         }
+    //     }
+    //     setTile(width / 2, height / 2, '@', (byte)12, (byte)0);
+    // }
 
     public void setTile(int x, int y, char c, byte fg, byte bg) {
         charMatrix[y][x] = c;
@@ -73,8 +125,8 @@ public class TelaASCII extends JPanel {
     }
 
     public TelaASCII() {
-        populateDemo();
-        setPreferredSize(new Dimension(width * 12, height * 20));
+        // AGORA NÃO INICIALIZA DEMO
+        initScreen(width, height, 3, 5);
         setBackground(PALETTE[backgroundColor]);
     }
 
@@ -101,15 +153,6 @@ public class TelaASCII extends JPanel {
         int basePanelW = tileWidthPixel * width;
         int basePanelH = tileHeightPixel * height;
 
-        // int scaleW = Math.max(1 , panelW / basePanelW);
-        // int scaleH = Math.max(1 , panelH / basePanelH);
-
-        // int scale = Math.min(scaleW, scaleH);
-
-        // int tileWidth = tileWidthPixel * scale, tileHeight = tileHeightPixel * scale;
-
-        // int fontSize = tileHeight;
-
         if (basePanelH * panelW < basePanelW * panelH){
             targetX = panelW;
             targetY = (int)Math.floor(basePanelH * panelW / basePanelW);
@@ -121,8 +164,6 @@ public class TelaASCII extends JPanel {
         targetX = Math.max(basePanelW, targetX);
         targetY = Math.max(basePanelH, targetY);
 
-        // int offsetX = (panelW - basePanelW * scale) / 2;
-        // int offsetY = (panelH - basePanelH * scale) / 2;
         int offsetX = (panelW - targetX) / 2;
         int offsetY = (panelH - targetY) / 2;
 
@@ -178,20 +219,6 @@ public class TelaASCII extends JPanel {
                 int textY = posY + (tileHeight - fm.getDescent());
                 g2.drawString(String.valueOf(c), posX, textY);                                
                 
-                // int px = x * tileWidth + offsetX;
-                // int py = y * tileHeight + offsetY;
-
-                // Color bg = PALETTE[ bgMatrix[y][x] & 0x0F ];
-                // g2.setColor(bg);
-                // g2.fillRect(px, py, tileWidth, tileHeight);
-
-                // Color fg = PALETTE[ fgMatrix[y][x] & 0x0F ];
-                // g2.setColor(fg);
-
-                // char c = charMatrix[y][x];
-                // int textY = py + (tileHeight - fm.getDescent());
-                // g2.drawString(String.valueOf(c), px, textY);
-
                 dirty[y][x] = false;
                 px += tileWidth;
             }
@@ -205,6 +232,7 @@ public class TelaASCII extends JPanel {
         markAllDirty();
     }
 
+    // main deixado intacto
     public static void main(String[] args) {
         JFrame frame = new JFrame("ASCII Graphic Screen");
         TelaASCII screen = new TelaASCII();
