@@ -1,0 +1,17 @@
+how the game architecture should go, theoretically:
+
+engine/ // sould be compiled into a .jar in the future
+├── src/
+│   ├── Screen
+│   ├── Input
+│   ├── Renderer
+│   └── Main
+└── assets/
+    ├── Object
+    ├── Frame
+    ├── Sprite
+    ├── Sound <- bro thinks he's a part of the [[main system]]
+    ├── Room
+    ├── Layer
+    ├── Game
+    └── Script ?

@@ -1,0 +1,51 @@
+@Override
+protected void paintComponent(Graphics g) {
+    super.paintComponent(g);
+
+    Graphics2D g2 = (Graphics2D) g;
+    g2.setRenderingHint(
+        RenderingHints.KEY_TEXT_ANTIALIASING,
+        RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+    );
+
+    // ======= MATHS =======
+    int panelW = getWidth();
+    int panelH = getHeight();
+
+    // cálculo anterior (usa proporção 2:1 como antes)
+    int tWidth  = panelW / width;
+    int tHeight = panelH / (height * 2);
+    int fontSize = Math.max(1, Math.min(tWidth, tHeight)) * 2;
+
+    // ======= FONT CACHE =======
+    // só recria fonte quando o size muda
+    if (fontSize != cachedFontSize) {
+        cachedFont = new Font("Consolas", Font.PLAIN, fontSize);
+        cachedFontSize = fontSize;
+        ratioComputed = false;   // força nova medição
+    }
+
+    g2.setFont(cachedFont);
+    FontMetrics fm = g2.getFontMetrics();
+
+    // ======= HYBRID RATIO =======
+    if (!ratioComputed) {
+        float w = (float) fm.charWidth('M');
+        float h = (float) fm.getHeight();
+        fontRatio = w / h;       // ex: 0.55
+        ratioComputed = true;
+    }
+
+    // ======= APPLY RATIO =======
+    // substitui seu cálculo fixo 1:2 por runtime ratio
+    int tileHeight = fontSize;
+    int tileWidth  = (int) (tileHeight * fontRatio);
+
+    // ======= CENTERING =======
+    int displayW = width * tileWidth;
+    int displayH = height * tileHeight;
+
+    int offsetX = (panelW - displayW) / 2;
+    int offsetY = (panelH - displayH) / 2;
+
+    // ... agora pode desenhar normalmente
